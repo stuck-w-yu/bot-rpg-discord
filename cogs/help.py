@@ -40,6 +40,14 @@ class HelpCommand(commands.Cog):
         )
         embed.add_field(name="📜 Commands", value=commands_list, inline=False)
         
+        # GM Section (only visible if user is the GM)
+        if interaction.user.id == 737579270083182632:
+            gm_list = (
+                "`/gmgive [user] [gold] [plat]` - Give Currency 💸\n"
+                "`/gmset [user] [slot] [level]` - Set Monster Level 🆙"
+            )
+            embed.add_field(name="👑 Game Master", value=gm_list, inline=False)
+    
         embed.set_footer(text="Use these commands in any channel!")
         
         await interaction.response.send_message(embed=embed)

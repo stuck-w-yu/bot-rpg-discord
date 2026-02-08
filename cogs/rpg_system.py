@@ -688,6 +688,39 @@ class RPGSystem(commands.Cog):
         embed.add_field(name="⚪ Platinum", value=f"{platinum:,}", inline=True)
         await interaction.response.send_message(embed=embed)
 
+    # --- GM COMMANDS ---
+    def is_gm(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == 737579270083182632
+
+    @app_commands.command(name="gmgive", description="[GM] Give Gold/Platinum to a user")
+    async def gmgive(self, interaction: discord.Interaction, user: discord.User, gold: int = 0, platinum: int = 0):
+        if not self.is_gm(interaction):
+            await interaction.response.send_message("❌ You are not the Game Master!", ephemeral=True)
+            return
+            
+        await self.update_balance(user.id, interaction.guild_id, amount_gold=gold, amount_platinum=platinum)
+        await interaction.response.send_message(f"✅ Gave **{gold}G** and **{platinum}P** to {user.mention}.", ephemeral=True)
+
+    @app_commands.command(name="gmset", description="[GM] Set Monster Level for a user's slot")
+    async def gmset(self, interaction: discord.Interaction, user: discord.User, slot: int, level: int):
+        if not self.is_gm(interaction):
+            await interaction.response.send_message("❌ You are not the Game Master!", ephemeral=True)
+            return
+            
+        async with aiosqlite.connect(DB_NAME) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM user_monsters WHERE user_id = ? AND guild_id = ? AND team_slot = ?", (user.id, interaction.guild_id, slot))
+            monster = await cursor.fetchone()
+            
+            if not monster:
+                await interaction.response.send_message(f"❌ {user.display_name} has no monster in Slot {slot}.", ephemeral=True)
+                return
+                
+            await db.execute("UPDATE user_monsters SET level = ? WHERE id = ?", (level, monster['id']))
+            await db.commit()
+            
+        await interaction.response.send_message(f"✅ Set {user.display_name}'s Slot {slot} monster to **Level {level}**.", ephemeral=True)
+
     @app_commands.command(name="summon", description="Summon a Monster! (Cost: 100 Gold)")
     async def summon(self, interaction: discord.Interaction):
         cost = 100
