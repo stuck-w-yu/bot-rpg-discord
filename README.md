@@ -93,4 +93,4 @@ python main.py
 ```
 
 ---
-*Created with ❤️ by the Developer Guild.*
+*Created with ❤️ by Stuckwyu.*
