@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  discord-bot:
+    container_name: leveling_bot
+    build: .
+    restart: always
+    volumes:
+      # Persist the database
+      - ./leveling.db:/app/leveling.db
+    env_file:
+      - .env

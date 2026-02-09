@@ -6,7 +6,27 @@ import random
 import time
 import math
 
+
 DB_NAME = "leveling.db"
+
+# Elemental Chart {Attacker: [Double Damage To]}
+# Weakness Logic: If Attacker is in Key, and Defender is in Value -> 2.0x
+# Resistance Logic (Inverse): If Defender is in Key, and Attacker is in Value -> 0.5x
+ELEMENT_CHART = {
+    "Fire": ["Nature", "Ice", "Metal"],
+    "Water": ["Fire", "Magma", "Earth"],
+    "Nature": ["Water", "Earth", "Light"], 
+    "Earth": ["Fire", "Metal", "Electric"],
+    "Air": ["Nature", "Earth", "Fighting"],
+    "Ice": ["Nature", "Air", "Dragon"],
+    "Metal": ["Nature", "Ice", "Fairy"],
+    "Dark": ["Ghost", "Psychic", "Cosmic"],
+    "Magma": ["Nature", "Ice", "Metal", "Earth"],
+    "Cosmic": ["Void", "Dark"],
+    "Void": ["Cosmic", "Metal"],
+    "Normal": []
+}
+
 
 # Skill Data
 SKILLS = {
@@ -28,6 +48,35 @@ SKILLS = {
     "Lava Plume": {"power": 1.8, "cd": 2, "element": "Magma", "desc": "Scarlet flames torch everything."},
     "Meteor Mash": {"power": 2.0, "cd": 3, "element": "Cosmic", "desc": "Punches with meteor force."},
     "Void Strike": {"power": 2.2, "cd": 3, "element": "Void", "desc": "Strikes from the void."},
+    
+    # New Element Skills
+    "Thunder Shock": {"power": 1.5, "cd": 2, "element": "Electric", "desc": "A jolt of electricity."},
+    "Thunderbolt": {"power": 2.5, "cd": 4, "element": "Electric", "desc": "A strong electric blast."},
+    "Zap Cannon": {"power": 3.0, "cd": 5, "element": "Electric", "desc": "Inaccurate but powerful zap."},
+
+    "Ray of Light": {"power": 1.5, "cd": 2, "element": "Light", "desc": "A beam of pure light."},
+    "Solar Beam": {"power": 2.5, "cd": 4, "element": "Light", "desc": "Blasts with solar energy."},
+    "Holy Smite": {"power": 3.0, "cd": 5, "element": "Light", "desc": "Divine judgment from above."},
+
+    "Lick": {"power": 1.2, "cd": 1, "element": "Ghost", "desc": "A spooky tongue lash."},
+    "Shadow Ball": {"power": 2.4, "cd": 3, "element": "Ghost", "desc": "Hurls a shadowy blob."},
+    "Poltergeist": {"power": 2.8, "cd": 5, "element": "Ghost", "desc": "Moves objects to attack."},
+
+    "Confusion": {"power": 1.4, "cd": 2, "element": "Psychic", "desc": "A telekinetic pulse."},
+    "Psybeam": {"power": 2.3, "cd": 3, "element": "Psychic", "desc": "A strange beam of energy."},
+    "Future Sight": {"power": 3.0, "cd": 5, "element": "Psychic", "desc": "An attack from the future."},
+
+    "Karate Chop": {"power": 1.5, "cd": 1, "element": "Fighting", "desc": "A sharp chop."},
+    "Seismic Toss": {"power": 2.2, "cd": 3, "element": "Fighting", "desc": "Hurls the foe."},
+    "Close Combat": {"power": 3.0, "cd": 5, "element": "Fighting", "desc": "A flurry of close strikes."},
+
+    "Fairy Wind": {"power": 1.4, "cd": 2, "element": "Fairy", "desc": "A gentle but hurting wind."},
+    "Moonblast": {"power": 2.5, "cd": 4, "element": "Fairy", "desc": "Power from the moon."},
+    "Dazzling Gleam": {"power": 2.0, "cd": 3, "element": "Fairy", "desc": "A blinding flash."},
+
+    "Dragon Rage": {"power": 1.6, "cd": 3, "element": "Dragon", "desc": "A shockwave of rage."},
+    "Dragon Breath": {"power": 2.4, "cd": 4, "element": "Dragon", "desc": "Exhales mystic fire."},
+    "Outrage": {"power": 3.5, "cd": 6, "element": "Dragon", "desc": "A rampage of destruction."},
 
     # Tier 2 Skills (Ultimates, High CD)
     "Leaf Storm": {"power": 2.5, "cd": 4, "element": "Nature", "desc": "A storm of sharp leaves."},
@@ -48,18 +97,58 @@ MONSTERS = {
     "Leafybug": {"rarity": "Common", "hp": 100, "attack": 10, "element": "Nature", "image": "🍃", "drop": "Leaf Essence", "skills": ["Scratch", "Vine Whip", "Leaf Storm"]},
     "Rockpup": {"rarity": "Common", "hp": 120, "attack": 8, "element": "Earth", "image": "🪨", "drop": "Hard Stone", "skills": ["Tackle", "Rock Throw", "Earthquake"]},
     "Bubblefin": {"rarity": "Common", "hp": 90, "attack": 12, "element": "Water", "image": "💧", "drop": "Water Bubble", "skills": ["Tackle", "Water Gun", "Hydro Pump"]},
+    "Sporeling": {"rarity": "Common", "hp": 95, "attack": 11, "element": "Nature", "image": "🍄", "drop": "Mushroom Cap", "skills": ["Scratch", "Vine Whip", "Leaf Storm"]},
+    "Charbeetle": {"rarity": "Common", "hp": 105, "attack": 11, "element": "Fire", "image": "🐞", "drop": "Charcoal", "skills": ["Tackle", "Ember", "Fire Blast"]},
+    "Tidecrab": {"rarity": "Common", "hp": 110, "attack": 9, "element": "Water", "image": "🦀", "drop": "Shell Fragment", "skills": ["Scratch", "Water Gun", "Hydro Pump"]},
     
+    # New Common/Uncommon
+    "Sparky": {"rarity": "Common", "hp": 85, "attack": 14, "element": "Electric", "image": "⚡", "drop": "Static Fur", "skills": ["Scratch", "Thunder Shock", "Thunderbolt"]},
+    "Lumibug": {"rarity": "Common", "hp": 90, "attack": 10, "element": "Light", "image": "💡", "drop": "Glow Dust", "skills": ["Tackle", "Ray of Light", "Solar Beam"]},
+    "Wispy": {"rarity": "Common", "hp": 80, "attack": 13, "element": "Ghost", "image": "👻", "drop": "Ectoplasm", "skills": ["Lick", "Shadow Ball", "Poltergeist"]},
+    "Mindblob": {"rarity": "Common", "hp": 85, "attack": 12, "element": "Psychic", "image": "🧠", "drop": "Thought Orb", "skills": ["Confusion", "Psybeam", "Future Sight"]},
+    "Brawler": {"rarity": "Common", "hp": 110, "attack": 14, "element": "Fighting", "image": "🥊", "drop": "Belt", "skills": ["Karate Chop", "Seismic Toss", "Close Combat"]},
+    "Pixiedust": {"rarity": "Common", "hp": 80, "attack": 12, "element": "Fairy", "image": "🧚", "drop": "Fairy Wing", "skills": ["Fairy Wind", "Moonblast", "Dazzling Gleam"]},
+
     "Emberfox": {"rarity": "Uncommon", "hp": 130, "attack": 15, "element": "Fire", "image": "🔥", "drop": "Fox Fire", "skills": ["Scratch", "Ember", "Fire Blast"]},
     "Stormbeak": {"rarity": "Uncommon", "hp": 110, "attack": 18, "element": "Air", "image": "⚡", "drop": "Feather", "skills": ["Peck", "Gust", "Hurricane"]},
     "Ironclad": {"rarity": "Uncommon", "hp": 160, "attack": 12, "element": "Metal", "image": "🛡️", "drop": "Iron Scrap", "skills": ["Tackle", "Iron Head", "Flash Cannon"]},
+    "Cloudray": {"rarity": "Uncommon", "hp": 125, "attack": 16, "element": "Air", "image": "🌥️", "drop": "Cloud Fluff", "skills": ["Tackle", "Gust", "Hurricane"]},
+    "Golemite": {"rarity": "Uncommon", "hp": 150, "attack": 14, "element": "Earth", "image": "🗿", "drop": "Stone Core", "skills": ["Tackle", "Rock Throw", "Earthquake"]},
     
+    # New Uncommon
+    "Voltara": {"rarity": "Uncommon", "hp": 115, "attack": 17, "element": "Electric", "image": "🔋", "drop": "Battery", "skills": ["Tackle", "Thunderbolt", "Zap Cannon"]},
+    "Hauntshade": {"rarity": "Uncommon", "hp": 100, "attack": 19, "element": "Ghost", "image": "🕸️", "drop": "Silk", "skills": ["Lick", "Shadow Ball", "Poltergeist"]},
+    "Blackbelt": {"rarity": "Uncommon", "hp": 140, "attack": 18, "element": "Fighting", "image": "🥋", "drop": "Black Belt", "skills": ["Karate Chop", "Seismic Toss", "Close Combat"]},
+    "Drake": {"rarity": "Uncommon", "hp": 150, "attack": 20, "element": "Dragon", "image": "🦎", "drop": "Scale", "skills": ["Scratch", "Dragon Rage", "Dragon Breath"]},
+
     "Crystalstag": {"rarity": "Rare", "hp": 180, "attack": 22, "element": "Ice", "image": "💎", "drop": "Ice Shard", "skills": ["Tackle", "Ice Shard", "Blizzard"]},
     "Shadowfang": {"rarity": "Rare", "hp": 150, "attack": 28, "element": "Dark", "image": "🌑", "drop": "Shadow Orb", "skills": ["Bite", "Dark Pulse", "Hyper Fang"]},
+    "Glacierbear": {"rarity": "Rare", "hp": 190, "attack": 20, "element": "Ice", "image": "🐻‍❄️", "drop": "Frost Fur", "skills": ["Scratch", "Ice Shard", "Blizzard"]},
+    "Spectrewisp": {"rarity": "Rare", "hp": 140, "attack": 30, "element": "Dark", "image": "👻", "drop": "Ectoplasm", "skills": ["Bite", "Dark Pulse", "Hyper Fang"]},
     
+    # New Rare
+    "Thunderlord": {"rarity": "Rare", "hp": 170, "attack": 25, "element": "Electric", "image": "🌩️", "drop": "Thunder Stone", "skills": ["Thunder Shock", "Thunderbolt", "Zap Cannon"]},
+    "Solarix": {"rarity": "Rare", "hp": 160, "attack": 24, "element": "Light", "image": "🌞", "drop": "Sun Stone", "skills": ["Ray of Light", "Solar Beam", "Holy Smite"]},
+    "Phantasm": {"rarity": "Rare", "hp": 130, "attack": 32, "element": "Ghost", "image": "💀", "drop": "Skull", "skills": ["Lick", "Shadow Ball", "Poltergeist"]},
+    "Esperion": {"rarity": "Rare", "hp": 150, "attack": 27, "element": "Psychic", "image": "🔮", "drop": "Crystal Ball", "skills": ["Confusion", "Psybeam", "Future Sight"]},
+    "Grandmaster": {"rarity": "Rare", "hp": 200, "attack": 30, "element": "Fighting", "image": "🤺", "drop": "Master Scroll", "skills": ["Karate Chop", "Seismic Toss", "Close Combat"]},
+    "Sylpheed": {"rarity": "Rare", "hp": 140, "attack": 26, "element": "Fairy", "image": "🦋", "drop": "Fairy Dust", "skills": ["Fairy Wind", "Moonblast", "Dazzling Gleam"]},
+    "Wyvern": {"rarity": "Rare", "hp": 220, "attack": 35, "element": "Dragon", "image": "🐉", "drop": "Dragon Tooth", "skills": ["Scratch", "Dragon Breath", "Outrage"]},
+
     "Volcanorle": {"rarity": "Super Rare", "hp": 250, "attack": 35, "element": "Magma", "image": "🌋", "drop": "Magma Core", "skills": ["Tackle", "Lava Plume", "Eruption"]},
+    "Mechadragon": {"rarity": "Super Rare", "hp": 260, "attack": 32, "element": "Metal", "image": "🤖", "drop": "Titanium Plate", "skills": ["Iron Head", "Flash Cannon", "Hyper Fang"]},
     
+    # New Super Rare
+    "Seraphim": {"rarity": "Super Rare", "hp": 240, "attack": 38, "element": "Light", "image": "👼", "drop": "Halo", "skills": ["Ray of Light", "Solar Beam", "Holy Smite"]},
+    "Cerebra": {"rarity": "Super Rare", "hp": 220, "attack": 40, "element": "Psychic", "image": "🧠", "drop": "Neuro Chip", "skills": ["Confusion", "Psybeam", "Future Sight"]},
+    "Oberon": {"rarity": "Super Rare", "hp": 230, "attack": 36, "element": "Fairy", "image": "👑", "drop": "Crown", "skills": ["Fairy Wind", "Moonblast", "Dazzling Gleam"]},
+
     "Starweaver": {"rarity": "Ultra Rare", "hp": 400, "attack": 50, "element": "Cosmic", "image": "✨", "drop": "Stardust", "skills": ["Tackle", "Meteor Mash", "Supernova"]},
+    "Solarion": {"rarity": "Ultra Rare", "hp": 380, "attack": 55, "element": "Cosmic", "image": "☀️", "drop": "Sun Fragment", "skills": ["Ember", "Meteor Mash", "Supernova"]},
     
+    # New Ultra Rare
+    "Bahamut": {"rarity": "Ultra Rare", "hp": 450, "attack": 60, "element": "Dragon", "image": "🐲", "drop": "Dragon Heart", "skills": ["Dragon Rage", "Dragon Breath", "Outrage"]},
+
     "Voidwalker": {"rarity": "Mythical Rare", "hp": 600, "attack": 80, "element": "Void", "image": "🌌", "drop": "Void Essence", "skills": ["Scratch", "Void Strike", "Black Hole"]}
 }
 
@@ -70,6 +159,14 @@ DROP_RATES = {
     "Super Rare": 0.05,
     "Ultra Rare": 0.01,
     "Mythical Rare": 0.001
+}
+
+# Shop Items
+SHOP_ITEMS = {
+    "Potion": {"price": 50, "desc": "Restores 50% HP during battle."},
+    "Super Potion": {"price": 100, "desc": "Restores 100% HP during battle."},
+    "Revive": {"price": 200, "desc": "Revives a fainted monster (Future Use)."},
+    "Monster Ball": {"price": 500, "desc": "Better chance to capture monsters (Future Use)."}
 }
 
 # --- CUSTOM BUTTON FOR SKILLS ---
@@ -118,7 +215,15 @@ class CombatView(discord.ui.View):
         self.e_hp = self.e_max_hp
         self.e_atk = enemy_monster['attack']
         
-        self.potions = 3
+        self.e_atk = enemy_monster['attack']
+        
+        # Potion Logic - Load from DB (passed in init or fetched?)
+        # For simplicity, we'll fetch or pass user_items. 
+        # But this View is synchronous in __init__.
+        # We need to rely on the passed 'potion_count' or fetch it in an async setup.
+        # Let's pass it in.
+        self.potions = 0 # Default, updated via async setup or passed arg
+
         self.commenced = False
         self.combat_log = f"Battle Start!\nGo {player_monster['monster_name']}!"
         
@@ -196,6 +301,27 @@ class CombatView(discord.ui.View):
             total_dmg = int(total_dmg * 1.5)
             crit = True
 
+        # ELEMENTAL CALC
+        atk_elem = skill_data.get('element', 'Normal')
+        def_elem = self.enemy_monster.get('element', 'Normal') # Enemy dictionary from adventure/run() has element?
+        # Note: adventure command constructs 'enemy_data', need to make sure 'element' is passed.
+        
+        multiplier = 1.0
+        effect_msg = ""
+        
+        # Check Strong
+        if def_elem in ELEMENT_CHART.get(atk_elem, []):
+            multiplier = 2.0
+            effect_msg = " (Super Effective! 🔥)"
+            
+        # Check Weak (Inverse of Strong chart)
+        # If I attack Fire with Nature -> Nature is Weak to Fire -> Disadvantage
+        elif atk_elem in ELEMENT_CHART.get(def_elem, []):
+            multiplier = 0.5
+            effect_msg = " (Not very effective... 🛡️)"
+
+        total_dmg = int(total_dmg * multiplier)
+
         self.e_hp -= total_dmg
         
         # Apply Cooldown
@@ -203,7 +329,7 @@ class CombatView(discord.ui.View):
         self.cooldowns[skill_name] = skill_data['cd'] 
 
         # Log
-        self.combat_log = f"💥 Used **{skill_name}**!"
+        self.combat_log = f"💥 Used **{skill_name}**!{effect_msg}"
         if crit: self.combat_log += " (CRIT!)"
         self.combat_log += f"\nDealt **{total_dmg}** damage to {self.enemy_monster['name']}."
 
@@ -251,12 +377,21 @@ class CombatView(discord.ui.View):
     async def heal_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.player: return
         
+        # Check Potions in DB (Concurrency safe? Maybe just trust local count first)
         if self.potions > 0:
-            heal = int(self.p_max_hp * 0.4)
-            self.p_hp = min(self.p_max_hp, self.p_hp + heal)
-            self.potions -= 1
-            self.combat_log = f"🧪 Used Potion! Restored {heal} HP."
-            await self.end_round(interaction)
+            # Consume 1 Potion
+            success = await self.cog.consume_item(self.player.id, interaction.guild_id, "Potion", 1)
+            if success:
+                heal = int(self.p_max_hp * 0.5)
+                self.p_hp = min(self.p_max_hp, self.p_hp + heal)
+                self.potions -= 1
+                self.combat_log = f"🧪 Used Potion! Restored {heal} HP."
+                
+                # Update button label
+                button.label = f"Heal ({self.potions})"
+                await self.end_round(interaction)
+            else:
+                await interaction.response.send_message("Failed to use potion!", ephemeral=True)
         else:
             await interaction.response.send_message("Out of potions!", ephemeral=True)
 
@@ -456,6 +591,28 @@ class RPGSystem(commands.Cog):
                 await db.execute("INSERT INTO user_items (user_id, guild_id, item_name, quantity) VALUES (?, ?, ?, ?)", (user_id, guild_id, item_name, quantity))
             await db.commit()
 
+    async def consume_item(self, user_id, guild_id, item_name, quantity=1):
+        async with aiosqlite.connect(DB_NAME) as db:
+            cursor = await db.execute("SELECT quantity FROM user_items WHERE user_id = ? AND guild_id = ? AND item_name = ?", (user_id, guild_id, item_name))
+            result = await cursor.fetchone()
+            
+            if result and result[0] >= quantity:
+                new_qty = result[0] - quantity
+                if new_qty == 0:
+                     await db.execute("DELETE FROM user_items WHERE user_id = ? AND guild_id = ? AND item_name = ?", (user_id, guild_id, item_name))
+                else:
+                     await db.execute("UPDATE user_items SET quantity = ? WHERE user_id = ? AND guild_id = ? AND item_name = ?", (new_qty, user_id, guild_id, item_name))
+                await db.commit()
+                return True
+            return False
+
+    async def get_item_count(self, user_id, guild_id, item_name):
+        async with aiosqlite.connect(DB_NAME) as db:
+            cursor = await db.execute("SELECT quantity FROM user_items WHERE user_id = ? AND guild_id = ? AND item_name = ?", (user_id, guild_id, item_name))
+            result = await cursor.fetchone()
+            return result[0] if result else 0
+
+
     async def get_team(self, user_id, guild_id):
         async with aiosqlite.connect(DB_NAME) as db:
             db.row_factory = aiosqlite.Row
@@ -598,11 +755,21 @@ class RPGSystem(commands.Cog):
             'hp': enemy_stats['hp'],
             'attack': enemy_stats['attack'],
             'image': enemy_stats['image'],
+            'element': enemy_stats['element'], # Pass Element
             'gold': random.randint(10, 50) * (rarities.index(chosen_rarity) + 1),
             'xp_yield': 50
         }
 
+        # Get Potion Count for View
+        potion_count = await self.get_item_count(user_id, interaction.guild_id, "Potion")
+        
         view = CombatView(interaction.user, active_mon, enemy_data, self)
+        view.potions = potion_count
+        # Update initial button label
+        for child in view.children:
+            if isinstance(child, discord.ui.Button) and child.label == "Heal":
+                child.label = f"Heal ({potion_count})"
+
         await interaction.response.send_message(embed=view.get_embed(), view=view)
 
     def create_team_embed(self, team):
@@ -679,6 +846,42 @@ class RPGSystem(commands.Cog):
             
         embed.description = desc
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="shop", description="View items for sale")
+    async def shop(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="🏪 General Store", description="Use `/buy <item> <amount>` to purchase.", color=discord.Color.green())
+        
+        for name, data in SHOP_ITEMS.items():
+            embed.add_field(name=f"{name} - 💰 {data['price']}G", value=data['desc'], inline=False)
+            
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="buy", description="Buy an item from the shop")
+    async def buy(self, interaction: discord.Interaction, item_name: str, quantity: int = 1):
+        # Case insensitive search
+        item_key = next((k for k in SHOP_ITEMS.keys() if k.lower() == item_name.lower()), None)
+        
+        if not item_key:
+            await interaction.response.send_message("❌ Item not found in shop!", ephemeral=True)
+            return
+            
+        if quantity <= 0:
+            await interaction.response.send_message("❌ Invalid quantity!", ephemeral=True)
+            return
+
+        cost = SHOP_ITEMS[item_key]['price'] * quantity
+        user_bal, _ = await self.get_balance(interaction.user.id, interaction.guild_id)
+        
+        if user_bal < cost:
+            await interaction.response.send_message(f"❌ You don't have enough Gold! Need **{cost}G**, have **{user_bal}G**.", ephemeral=True)
+            return
+            
+        # Transaction
+        await self.update_balance(interaction.user.id, interaction.guild_id, amount_gold=-cost)
+        await self.add_item(interaction.user.id, interaction.guild_id, item_key, quantity)
+        
+        await interaction.response.send_message(f"✅ Bought **{quantity}x {item_key}** for **{cost} Gold**.")
+
 
     @app_commands.command(name="balance", description="Check your RPG wallet")
     async def balance(self, interaction: discord.Interaction):
